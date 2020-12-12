@@ -1,0 +1,120 @@
+import org.gradle.internal.jvm.Jvm
+
+plugins {
+    id 'com.github.johnrengelman.shadow' version '4.0.2'
+}
+
+allprojects {
+    apply plugin: 'java'
+
+    group 'com.nemosw.spigot'
+    version '1.2.19'
+
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+    compileJava.options.encoding = 'UTF-8'
+    javadoc.options.encoding = 'UTF-8'
+
+    repositories {
+        // junit
+        mavenCentral()
+        // nms spigot & mox
+        mavenLocal()
+        maven { url = 'https://jitpack.io'}
+    }
+}
+
+subprojects {
+    apply plugin: 'maven-publish'
+
+    dependencies {
+        testCompile group: 'junit', name: 'junit', version: '4.12'
+
+        Project core = project(':core')
+        if (project != core)
+            compile core
+    }
+
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allJava
+    }
+
+    task javadocJar(type: Jar) {
+        classifier = 'javadoc'
+        from javadoc
+    }
+
+    publishing {
+        publications {
+            Tap(MavenPublication) {
+                artifactId = "$parent.name-$project.name"
+                from components.java
+                artifact sourcesJar
+                artifact javadocJar
+                pom {
+                    name = parent.name + "-" + project.name
+                    description = 'NemoSW minecraft library'
+                    url = 'https://github.com/nemosrc/tap'
+                    licenses {
+                        license {
+                            name = 'MIT License'
+                            url = 'http://www.opensource.org/licenses/mit-license.php'
+                        }
+                    }
+                    developers {
+                        developer {
+                            id = 'nemo'
+                            name = 'Nemo'
+                            email = 'nemosrc@gmail.com'
+                            url = 'https://github.com/nemosrc'
+                        }
+                    }
+                    scm {
+                        connection = 'scm:git:git://github.com/nemosrc/tap.git'
+                        developerConnection = 'scm:git:ssh://github.com/nemosrc/tap.git'
+                        url = 'https://github.com/nemosrc/tap'
+                    }
+                }
+            }
+        }
+    }
+}
+
+project(':core') {
+    processResources {
+        filesMatching('**/*.yml') {
+            expand project.properties
+        }
+    }
+
+    repositories {
+        maven { url = 'https://hub.spigotmc.org/nexus/content/repositories/snapshots/' }
+    }
+
+    dependencies {
+        compileOnly 'org.spigotmc:spigot-api:1.12.2-R0.1-SNAPSHOT'
+        compileOnly files(Jvm.current().toolsJar)
+        compile 'com.github.devil0414:collections:1.0'
+        compile 'com.github.devil0414:task:1.0'
+        compile 'com.github.devil0414:math:1.0'
+        compile 'com.github.devil0414:tools:1.0'
+    }
+}
+
+shadowJar {
+    classifier = 'universal'
+
+    dependencies {
+        exclude(dependency('com.google.code.gson:gson'))
+    }
+}
+
+dependencies {
+    compile subprojects
+}
+
+task spigotJar(type: Copy) {
+    from shadowJar
+    into 'F:\\Servers\\gamecon\\plugins'
+}
